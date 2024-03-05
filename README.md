@@ -8,7 +8,7 @@ This is a Moonraker plugin that enables the Klipper-based 3D printers to connect
 # Installation
 
     cd ~
-    git clone [https://github.com/Yumi-Lab/moonraker-yumi-lab.git](https://github.com/Yumi-Lab/moonraker-yumi-lab.git)
+    git clone https://github.com/Yumi-Lab/moonraker-yumi-lab.git
     cd moonraker-yumi-lab
     ./install.sh
 
@@ -33,7 +33,7 @@ See [run_as_container.md](run_as_container.md)
 # Set up a dev environment
 
     cd ~
-    git clone [https://github.com/Yumi-Lab/moonraker-yumi-lab.git](https://github.com/Yumi-Lab/moonraker-yumi-lab.git)
+    git clone https://github.com/Yumi-Lab/moonraker-yumi-lab.git
     cd moonraker-yumi-lab
     virtualenv -p /usr/bin/python3 --system-site-packages ~/moonraker-obico-env
     source ~/moonraker-obico-env/bin/activate
