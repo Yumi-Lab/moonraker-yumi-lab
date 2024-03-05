@@ -15,7 +15,7 @@ MOONRAKER_LOG_DIR="${HOME}/printer_data/logs"
 MOONRAKER_HOST="127.0.0.1"
 MOONRAKER_PORT="7125"
 OBICO_SERVICE_NAME="moonraker-obico"
-OBICO_REPO="https://github.com/TheSpaghettiDetective/moonraker-obico.git"
+OBICO_REPO="https://github.com/Yumi-Lab/moonraker-yumi-lab.git"
 CURRENT_USER=${USER}
 OVERWRITE_CONFIG="n"
 SKIP_LINKING="n"
@@ -108,9 +108,9 @@ ensure_writtable() {
 recreate_service() {
   sudo systemctl stop "${OBICO_SERVICE_NAME}" 2>/dev/null || true
 
-  report_status "Creating moonraker-obico systemctl service... You may need to enter password to run sudo."
+  report_status "Creating moonraker-yumi-lab systemctl service... You may need to enter password to run sudo."
   sudo /bin/sh -c "cat > /etc/systemd/system/${OBICO_SERVICE_NAME}.service" <<EOF
-#Systemd service file for moonraker-obico
+#Systemd service file for moonraker-yumi-lab
 [Unit]
 Description=Moonraker-Obico
 After=network-online.target moonraker.service

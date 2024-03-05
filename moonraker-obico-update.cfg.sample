@@ -1,10 +1,10 @@
-[update_manager moonraker-obico]
+[update_manager moonraker-yumi-lab]
 type: git_repo
-path: ~/moonraker-obico
-origin: https://github.com/TheSpaghettiDetective/moonraker-obico.git
-env: ~/moonraker-obico-env/bin/python
+path: ~/moonraker-yumi-lab
+origin: https://github.com/Yumi-Lab/moonraker-yumi-lab
+env: ~/moonraker-yumi-lab/bin/python
 requirements: requirements.txt
 install_script: install.sh
 managed_services:
-  moonraker-obico
+  moonraker-yumi-lab
 
