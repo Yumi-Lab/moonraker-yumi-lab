@@ -45,10 +45,10 @@ For self-hosted server, specify "http://server_ip:port". For instance, http://19
 
 EOF
     if [ -n "$CREALITY_VARIANT" ]; then
-        printf "The Obico Server. Press 'enter' to accept the default [https://app.obico.io]: "
+        printf "The Obico Server. Press 'enter' to accept the default [https://app.yumi-lab.com]: "
         read user_input
         # If user_input is empty, assign the default value
-        : ${user_input:="https://app.obico.io"}
+        : ${user_input:="https://app.yumi-lab.com"}
     else
         read -p "The Obico Server (Don't change unless you are linking to a self-hosted Obico Server): " -e -i "https://app.obico.io" user_input
     fi
@@ -122,7 +122,7 @@ EOF
 ensure_venv() {
   OBICO_ENV="${OBICO_DIR}/../moonraker-obico-env"
   if [ ! -f "${OBICO_ENV}/bin/activate" ] ; then
-    report_status "Creating python virtual environment for moonraker-obico..."
+    report_status "Creating python virtual environment for moonraker-yumi-lab..."
     mkdir -p "${OBICO_ENV}"
     if is_k1; then
       virtualenv -p /opt/bin/python3 --system-site-packages "${OBICO_ENV}"
@@ -147,7 +147,7 @@ ${red}${1}${default}
 Please fix the error above and re-run this setup script:
 
 -------------------------------------------------------------------------------------------------
-cd ~/moonraker-obico
+cd ~/moonraker-yumi-lab
 ./install.sh
 -------------------------------------------------------------------------------------------------
 
@@ -182,7 +182,7 @@ brand() {
 welcome() {
   brand
   echo ""
-  print_header "> Obico for Klipper (Moonraker-Obico) <"
+  print_header "> Yumi-Lab for Klipper (Moonraker-yumi-lab) by obico <"
   echo -n "${cyan}"
   print_centered_line ""
   print_centered_line "* AI-Powered Failure Detection"
