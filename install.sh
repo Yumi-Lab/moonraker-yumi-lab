@@ -62,27 +62,30 @@ EOF
     fi
   fi
 }
+##########################################################
+#removed for haven't input during installation for YumiOS#
+##########################################################
 
-prompt_for_settings() {
-  print_header " Moonraker Info"
+#prompt_for_settings() {
+#  print_header " Moonraker Info"
 
-cat <<EOF
+#cat <<EOF
 
-We need info about your Moonraker. If you are not sure, just leave them as defaults.
+#We need info about your Moonraker. If you are not sure, just leave them as defaults.
 
-EOF
+#EOF
 
-  read -p "Moonraker host: " -e -i "${MOONRAKER_HOST}" user_input
-  eval MOONRAKER_HOST="${user_input}"
-  read -p "Moonraker port: " -e -i "${MOONRAKER_PORT}" user_input
-  eval MOONRAKER_PORT="${user_input}"
-  read -p "Moonraker config file: " -e -i "${MOONRAKER_CONFIG_FILE}" user_input
-  eval MOONRAKER_CONFIG_FILE="${user_input}"
-  MOONRAKER_CONF_DIR=$(dirname "${MOONRAKER_CONFIG_FILE}")
-  read -p "Klipper log directory: " -e -i "${MOONRAKER_LOG_DIR}" user_input
-  eval MOONRAKER_LOG_DIR="${user_input}"
-  echo ""
-}
+  #read -p "Moonraker host: " -e -i "${MOONRAKER_HOST}" user_input
+  #eval MOONRAKER_HOST="${user_input}"
+  #read -p "Moonraker port: " -e -i "${MOONRAKER_PORT}" user_input
+  #eval MOONRAKER_PORT="${user_input}"
+  #read -p "Moonraker config file: " -e -i "${MOONRAKER_CONFIG_FILE}" user_input
+  #eval MOONRAKER_CONFIG_FILE="${user_input}"
+  #MOONRAKER_CONF_DIR=$(dirname "${MOONRAKER_CONFIG_FILE}")
+  #read -p "Klipper log directory: " -e -i "${MOONRAKER_LOG_DIR}" user_input
+  #eval MOONRAKER_LOG_DIR="${user_input}"
+  #echo ""
+#}
 
 ensure_deps() {
   report_status "Installing required system packages... You may be prompted to enter password."

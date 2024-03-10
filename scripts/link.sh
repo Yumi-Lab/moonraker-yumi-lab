@@ -64,9 +64,9 @@ The changes we have made to your system:
 - Inserted "[include moonraker_obico_macros.cfg]" in the "printer.conf" file
 - Log file: ${OBICO_LOG_FILE}
 
-To remove Moonraker-Obico, run:
+To remove Moonraker-yumi-lab, run:
 
-cd ~/moonraker-obico
+cd ~/moonraker-yumi-lab
 ./install.sh -u
 
 EOF
@@ -93,11 +93,14 @@ prompt_for_sentry() {
   if grep -q "sentry_opt" "${OBICO_CFG_FILE}" ; then
     return 0
   fi
-
-  echo -e "\nOne last thing: Do you want to opt in bug reporting to help us make Obico better?"
-  echo -e "The debugging info included in the report will be anonymized.\n"
-  printf "Opt in bug reporting? [Y/n]:"
-  read opt_in
+  ####################
+  #removed for YumiOS#
+  ####################
+  #echo -e "\nOne last thing: Do you want to opt in bug reporting to help us make Obico better?"
+  #echo -e "The debugging info included in the report will be anonymized.\n"
+  #printf "Opt in bug reporting? [Y/n]:"
+  #read opt_in
+  opt_in="Y" #<-----
   # If user_input is empty, assign the default value
   : ${opt_in:="Y"}
   echo ""
