@@ -10,6 +10,7 @@ This is a Moonraker plugin that enables the Klipper-based 3D printers to connect
     cd ~
     git clone https://github.com/Yumi-Lab/moonraker-yumi-lab.git
     cd moonraker-yumi-lab
+    chmod +x install.sh
     ./install.sh
 
 [Detailed documentation](https://www.obico.io/docs/user-guides/klipper-setup/).
