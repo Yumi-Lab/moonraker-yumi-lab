@@ -34,7 +34,7 @@ jobs:
               apt-get update
               apt-get install -y --no-install-recommends \
                 build-essential pkg-config git ca-certificates \
-                meson ninja-build \
+                automake autoconf libtool gengetopt \
                 libmicrohttpd-dev libjansson-dev libssl-dev \
                 libsrtp2-dev libglib2.0-dev libnice-dev \
                 libwebsockets-dev libconfig-dev libcurl4-openssl-dev \
@@ -46,17 +46,21 @@ jobs:
                 https://github.com/meetecho/janus-gateway.git
               cd janus-gateway
 
-              # Build with meson — auto-detect features from installed -dev packages
-              # websockets enabled (libwebsockets-dev installed)
-              # data-channels disabled (no usrsctp)
-              meson setup build \
-                --prefix=/usr \
-                --buildtype=release \
-                -Ddocs=disabled
-              ninja -C build
+              # Build with autotools
+              sh autogen.sh
+              ./configure --prefix=/usr \
+                --disable-docs \
+                --disable-data-channels \
+                --disable-rabbitmq \
+                --disable-mqtt \
+                --disable-nanomsg \
+                --disable-unix-sockets \
+                --enable-websockets \
+                --enable-turn-rest-api
+              make -j$(nproc)
 
               # Install to staging directory
-              DESTDIR=/tmp/janus-staging ninja -C build install
+              make DESTDIR=/tmp/janus-staging install
 
               # ── Package as .deb ──
               PKG_DIR="/tmp/janus-gateway_${JANUS_VERSION_NUM}_armhf"
