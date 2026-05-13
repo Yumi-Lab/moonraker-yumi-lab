@@ -1,0 +1,133 @@
+name: Build Janus Gateway .deb (Trixie armhf)
+
+on:
+  workflow_dispatch:
+    inputs:
+      janus_version:
+        description: "Janus Gateway version tag (e.g. v1.2.4)"
+        required: true
+        default: "v1.2.4"
+
+jobs:
+  build-armhf:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up QEMU for armhf emulation
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm
+
+      - name: Create output directory
+        run: mkdir -p output
+
+      - name: Build Janus in Trixie armhf container
+        run: |
+          docker run --rm --platform linux/arm/v7 \
+            -e JANUS_VERSION="${{ inputs.janus_version }}" \
+            -v ${{ github.workspace }}/output:/output \
+            debian:trixie bash -exc '
+              export DEBIAN_FRONTEND=noninteractive
+              JANUS_VERSION_NUM="${JANUS_VERSION#v}"
+
+              apt-get update
+              apt-get install -y --no-install-recommends \
+                build-essential pkg-config git ca-certificates \
+                meson ninja-build \
+                libmicrohttpd-dev libjansson-dev libssl-dev \
+                libsrtp2-dev libglib2.0-dev libnice-dev \
+                libwebsockets-dev libconfig-dev libcurl4-openssl-dev \
+                libopus-dev libogg-dev
+
+              # Clone janus-gateway at requested version
+              cd /tmp
+              git clone --depth 1 --branch ${JANUS_VERSION} \
+                https://github.com/meetecho/janus-gateway.git
+              cd janus-gateway
+
+              # Build with meson — auto-detect features from installed -dev packages
+              # websockets enabled (libwebsockets-dev installed)
+              # data-channels disabled (no usrsctp)
+              meson setup build \
+                --prefix=/usr \
+                --buildtype=release \
+                -Ddocs=disabled
+              ninja -C build
+
+              # Install to staging directory
+              DESTDIR=/tmp/janus-staging ninja -C build install
+
+              # ── Package as .deb ──
+              PKG_DIR="/tmp/janus-gateway_${JANUS_VERSION_NUM}_armhf"
+              mkdir -p "${PKG_DIR}/DEBIAN"
+              cp -a /tmp/janus-staging/usr "${PKG_DIR}/"
+
+              # Remove unnecessary files to keep .deb small
+              rm -rf "${PKG_DIR}/usr/share/doc" \
+                     "${PKG_DIR}/usr/share/man" \
+                     "${PKG_DIR}/usr/include"
+
+              # Detect shared library dependencies automatically
+              DEPS=$(dpkg-shlibdeps -O \
+                ${PKG_DIR}/usr/bin/janus \
+                ${PKG_DIR}/usr/lib/janus/plugins/*.so \
+                ${PKG_DIR}/usr/lib/janus/transports/*.so \
+                2>/dev/null | sed "s/^shlibs:Depends=//") || true
+
+              # Fallback if dpkg-shlibdeps fails
+              if [ -z "$DEPS" ]; then
+                DEPS="libglib2.0-0t64, libjansson4, libnice10, libssl3t64, libsrtp2-1, libwebsockets19, libmicrohttpd12, libconfig9, libcurl4t64"
+              fi
+
+              cat > "${PKG_DIR}/DEBIAN/control" <<CTRL
+          Package: janus-gateway
+          Version: ${JANUS_VERSION_NUM}
+          Section: net
+          Priority: optional
+          Architecture: armhf
+          Depends: ${DEPS}
+          Maintainer: Yumi-Lab <contact@yumi-lab.com>
+          Homepage: https://github.com/meetecho/janus-gateway
+          Description: Janus WebRTC Server (Trixie armhf cross-build)
+           Pre-built Janus Gateway for Debian 13 Trixie armhf.
+           Built from janus-gateway upstream for systems where the
+           official Debian package is unavailable.
+          CTRL
+
+              # Fix control file indentation (remove leading spaces from heredoc)
+              sed -i "s/^          //" "${PKG_DIR}/DEBIAN/control"
+
+              dpkg-deb --build --root-owner-group "${PKG_DIR}"
+
+              DEB_FILE="/tmp/janus-gateway_${JANUS_VERSION_NUM}_armhf.deb"
+              cp "${DEB_FILE}" /output/
+              echo "Built: $(ls -lh ${DEB_FILE})"
+              dpkg-deb --info "${DEB_FILE}"
+            '
+
+      - name: Upload .deb as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: janus-gateway-armhf-trixie
+          path: output/*.deb
+
+      - name: Create or update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: janus-${{ inputs.janus_version }}-trixie-armhf
+          name: "Janus Gateway ${{ inputs.janus_version }} (Trixie armhf)"
+          body: |
+            Pre-compiled Janus WebRTC Gateway for **Debian 13 Trixie armhf** (ARM Cortex-A7).
+
+            Built from [janus-gateway ${{ inputs.janus_version }}](https://github.com/meetecho/janus-gateway/releases/tag/${{ inputs.janus_version }}).
+
+            ### Installation
+            ```bash
+            curl -L -o /tmp/janus-gateway.deb <asset-url>
+            sudo dpkg -i /tmp/janus-gateway.deb
+            sudo apt-get install -f -y
+            ```
+          files: output/*.deb
+          draft: false
+          prerelease: false
