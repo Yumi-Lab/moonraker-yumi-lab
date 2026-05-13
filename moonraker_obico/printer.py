@@ -7,7 +7,6 @@ import pathlib
 
 from .config import Config
 from .version import VERSION
-from .utils import sanitize_filename
 
 class PrinterState:
     STATE_OFFLINE = 'Offline'
@@ -40,6 +39,7 @@ class PrinterState:
         self.current_file_metadata = None
         self.webcams = None
         self.data_channel_id = None
+        self._last_pause_was_timelapse = False  # Track if last pause was from timelapse
 
     def has_active_job(self) -> bool:
         return PrinterState.get_state_from_status(self.status) in PrinterState.ACTIVE_STATES
@@ -51,6 +51,22 @@ class PrinterState:
     def is_printing(self) -> bool:
         with self._mutex:
             return self.status.get('print_stats', {}).get('state') == 'printing'
+
+    def is_timelapse_paused(self) -> bool:
+        """Check if the printer is paused due to moonraker-timelapse taking a frame.
+        When timelapse parks the toolhead for a photo, the print state becomes 'paused',
+        but we should not send pause notifications in this case."""
+        with self._mutex:
+            timelapse_macro = self.status.get('gcode_macro TIMELAPSE_TAKE_FRAME', {})
+            return timelapse_macro.get('is_paused', False)
+
+    def set_last_pause_was_timelapse(self, value: bool):
+        with self._mutex:
+            self._last_pause_was_timelapse = value
+
+    def was_last_pause_timelapse(self) -> bool:
+        with self._mutex:
+            return self._last_pause_was_timelapse
 
     # Return: The old status.
     def update_status(self, new_status: Dict) -> Dict:
@@ -149,20 +165,21 @@ class PrinterState:
             has_error = self.status.get('print_stats', {}).get('state', '') == 'error'
             fan = self.status.get('fan') or dict()
             gcode_move = self.status.get('gcode_move') or dict()
+            display_status = self.status.get('display_status') or dict()
 
             temps = {}
             for heater in self.app_config.all_mr_heaters():
                 data = self.status.get(heater, {})
 
+                temp = data.get('temperature')
                 temps[self.app_config.get_mapped_server_heater_name(heater)] = {
-                    'actual': round(data.get('temperature', 0.), 2),
+                    'actual': round(temp if temp is not None else 0., 2),
                     'offset': 0,
                     'target': data.get('target'), # "target = null" indicates this is a sensor, not a heater, and hence temperature can't be set
                 }
 
             filepath = print_stats.get('filename')
             filename = pathlib.Path(filepath).name if filepath else None
-            file_display_name = sanitize_filename(filename) if filename else None
 
             if state == PrinterState.STATE_OFFLINE:
                 return {}
@@ -191,7 +208,7 @@ class PrinterState:
                     'file': {
                         'name': filename,
                         'path': filepath,
-                        'display': file_display_name,
+                        'display': filename,
                         'obico_g_code_file_id': self.get_obico_g_code_file_id(),
                     },
                     'estimatedPrintTime': None,
@@ -219,7 +236,9 @@ class PrinterState:
                 'currentFeedRate': gcode_move.get('speed_factor'),
                 'currentFlowRate': gcode_move.get('extrude_factor'),
                 'currentFanSpeed': fan.get('speed'),
-                'currentZ': current_z
+                'currentZ': current_z,
+                'display_status': display_status
+
             }
 
     def get_z_info(self):
@@ -230,7 +249,8 @@ class PrinterState:
         print_info = print_stats.get('info') or dict()
         file_metadata = self.current_file_metadata
         is_not_busy = self.is_busy() is False or self.transient_state is not None
-        has_print_duration = print_stats.get('print_duration', 0) > 0
+        print_duration = print_stats.get('print_duration', 0)
+        has_print_duration = (print_duration if print_duration is not None else 0) > 0
 
         current_z = None
         max_z = None
@@ -239,8 +259,9 @@ class PrinterState:
 
         if not current_layer:
             first_layer_macro_status = self.status.get('gcode_macro _OBICO_LAYER_CHANGE', {})
-            if first_layer_macro_status.get('current_layer', -1) > 0: # current_layer > 0 means macros is embedded in gcode
-                current_layer = first_layer_macro_status['current_layer']
+            macro_current_layer = first_layer_macro_status.get('current_layer', -1)
+            if macro_current_layer is not None and macro_current_layer > 0: # current_layer > 0 means macros is embedded in gcode
+                current_layer = macro_current_layer
 
         gcode_position = self.status.get('gcode_move', {}).get('gcode_position', [])
         current_z = gcode_position[2] if len(gcode_position) > 2 else None

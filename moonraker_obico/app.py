@@ -273,7 +273,8 @@ class App(object):
         def find_current_print_ts():
             cur_job = self.moonrakerconn.find_most_recent_job()
             if cur_job:
-                return int(cur_job.get('start_time', '0'))
+                start_time = cur_job.get('start_time', '0')
+                return int(start_time if start_time is not None else '0')
             else:
                 _logger.warning(f'Active job indicate in print_stats: {printer_state.status}, but not in job history: {cur_job}')
                 return None
@@ -345,7 +346,10 @@ class App(object):
 
         if cur_state == PrinterState.STATE_PRINTING:
             if prev_state == PrinterState.STATE_PAUSED:
-                self.post_print_event(PrinterState.EVENT_RESUMED)
+                # Suppress resume notification if the pause was from timelapse
+                if not printer_state.was_last_pause_timelapse():
+                    self.post_print_event(PrinterState.EVENT_RESUMED)
+                printer_state.set_last_pause_was_timelapse(False)
                 return
             if prev_state == PrinterState.STATE_OPERATIONAL:
                 self.set_current_print(printer_state)
@@ -353,7 +357,11 @@ class App(object):
                 return
 
         if cur_state == PrinterState.STATE_PAUSED and prev_state == PrinterState.STATE_PRINTING:
-            self.post_print_event(PrinterState.EVENT_PAUSED)
+            # Suppress pause notification if this is a timelapse frame capture
+            is_timelapse = printer_state.is_timelapse_paused()
+            printer_state.set_last_pause_was_timelapse(is_timelapse)
+            if not is_timelapse:
+                self.post_print_event(PrinterState.EVENT_PAUSED)
             return
 
         if cur_state == PrinterState.STATE_OPERATIONAL and prev_state in PrinterState.ACTIVE_STATES:
@@ -375,7 +383,12 @@ class App(object):
                 self.unset_current_print(printer_state)
                 return
 
-        self.server_conn.post_status_update_to_server(is_critical=False) # Nothing critical has changed. Can be skipped so that it won't bombard the server
+        prev_display_status = prev_status.get('display_status', {})
+        cur_display_status = data['status'].get('display_status', {})
+        display_status_changed = prev_display_status != cur_display_status
+
+        # If nothing critical has changed, it can be skipped so that it won't bombard the server unless display_status changes for faster UI update
+        self.server_conn.post_status_update_to_server(is_critical=display_status_changed)
 
     def process_server_msg(self, msg):
         if 'remote_status' in msg:

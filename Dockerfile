@@ -1,5 +1,5 @@
 # Build the venv
-FROM python:3-bookworm as build
+FROM python:3.13-bookworm AS build
 
 WORKDIR /opt
 
@@ -8,7 +8,7 @@ RUN python -m venv venv \
  && venv/bin/pip install -r requirements.txt
 
 # Runtime Image
-FROM python:3-slim-bookworm
+FROM python:3.13-slim-bookworm
 
 RUN apt update \
  && apt install -y janus ffmpeg \
@@ -27,5 +27,5 @@ COPY --chown=obico:obico . moonraker-obico
 USER obico
 ENV PYTHONPATH=/opt/moonraker-obico
 VOLUME ["/opt/printer_data/config", "/opt/printer_data/logs"]
-ENTRYPOINT ["/opt/venv/bin/python", "-m", "moonraker_obico.app"]
+ENTRYPOINT ["/opt/moonraker-obico/scripts/docker-entrypoint.sh"]
 CMD ["-c", "/opt/printer_data/config/moonraker-obico.cfg"]

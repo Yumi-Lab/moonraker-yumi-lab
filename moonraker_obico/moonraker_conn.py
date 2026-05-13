@@ -22,7 +22,7 @@ from .version import VERSION
 
 
 _logger = logging.getLogger('obico.moonraker_conn')
-_ignore_pattern=re.compile(r'"method": "notify_proc_stat_update"')
+_ignore_pattern=re.compile(r'method.*notify_proc_stat_update')
 
 class MoonrakerConn:
     """
@@ -56,7 +56,7 @@ class MoonrakerConn:
 
         self._identify_as_obico()
         self._register_klipper_remote_methods()
-        self.available_printer_objects = self.api_get('printer.objects.list', raise_for_status=False).get('objects', [])
+        self.available_printer_objects = (self.api_get('printer.objects.list', raise_for_status=False) or {}).get('objects', [])
         self._request_subscribe(self.available_printer_objects)
         self.app_config.update_moonraker_objects(self)
 
@@ -325,6 +325,7 @@ class MoonrakerConn:
             'gcode_move': ('speed_factor', 'extrude_factor'),
             'history': None,
             'gcode_macro _OBICO_LAYER_CHANGE': None,
+            'gcode_macro TIMELAPSE_TAKE_FRAME': ('is_paused',),  # For suppressing pause notifications during timelapse
             'fan': ('speed'),
         }
         subscribed_objects = {
@@ -354,6 +355,7 @@ class MoonrakerConn:
                 "extruder": None,
                 "gcode_move": None,
                 'gcode_macro _OBICO_LAYER_CHANGE': None,
+                'gcode_macro TIMELAPSE_TAKE_FRAME': None,
                 "fan": None,
             }
 

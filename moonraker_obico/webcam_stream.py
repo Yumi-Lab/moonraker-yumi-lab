@@ -68,15 +68,12 @@ def find_ffmpeg_h264_encoder():
     test_video = os.path.join(FFMPEG_DIR, 'test-video.mp4')
     FNULL = open(os.devnull, 'w')
     try:
-        for encoder in ['h264_omx', 'h264_v4l2m2m']:
+        for encoder in ['h264_omx', 'h264_v4l2m2m', 'h264_rkmpp']:
             ffmpeg_cmd = '{} -re -i {} -pix_fmt yuv420p -vcodec {} -an -f rtp rtp://127.0.0.1:8014?pkt_size=1300'.format(FFMPEG, test_video, encoder)
             _logger.debug('Popen: {}'.format(ffmpeg_cmd))
             ffmpeg_test_proc = subprocess.Popen(ffmpeg_cmd.split(' '), stdout=FNULL, stderr=FNULL)
             if ffmpeg_test_proc.wait() == 0:
-                if encoder == 'h264_omx':
-                    return '-flags:v +global_header -c:v {} -bsf dump_extra'.format(encoder)  # Apparently OMX encoder needs extra param to get the stream to work
-                else:
-                    return '-c:v {}'.format(encoder)
+                return encoder
     except Exception as e:
         _logger.exception('Failed to find ffmpeg h264 encoder. Exception: %s\n%s', e, traceback.format_exc())
 
@@ -134,7 +131,7 @@ class WebcamStreamer:
 
             if not self.wait_for_janus():
                 for webcam in self.webcams:
-                    webcam.setdefault('error', 'Janus failed to start')
+                    raise Exception('Janus failed to start')
 
             for webcam in self.webcams:
                 if webcam.streaming_params['mode'] == 'h264_rtsp':
@@ -297,7 +294,15 @@ class WebcamStreamer:
                 bitrate = int(bitrate/2)
 
             rtp_port = webcam.runtime['videoport']
-            self.start_ffmpeg(rtp_port, '-re -i {stream_url} -filter:v fps={fps} -b:v {bitrate} -pix_fmt yuv420p -s {img_w}x{img_h} {encoder}'.format(stream_url=stream_url, fps=fps, bitrate=bitrate, img_w=img_w, img_h=img_h, encoder=webcam.streaming_params.get('h264_encoder')))
+
+            encoder = webcam.streaming_params.get('h264_encoder')
+            if encoder == 'h264_omx':
+                encoding_params = '-pix_fmt yuv420p -flags:v +global_header -c:v {} -bsf dump_extra'.format(encoder)  # Apparently OMX encoder needs extra param to get the stream to work
+            elif encoder == 'h264_rkmpp':
+                encoding_params = '-pix_fmt rgba -c:v {} -g {}'.format(encoder, fps)
+            else:
+                encoding_params = '-pix_fmt yuv420p -c:v {}'.format(encoder)
+            self.start_ffmpeg(rtp_port, '-re -i {stream_url} -filter:v fps={fps} -b:v {bitrate} -s {img_w}x{img_h} {encoding_params} -g {fps}'.format(stream_url=stream_url, fps=fps, bitrate=bitrate, img_w=img_w, img_h=img_h, encoding_params=encoding_params), retry_after_quit=True)
         except Exception:
             self.sentry.captureException()
 
@@ -324,10 +329,10 @@ class WebcamStreamer:
         except subprocess.TimeoutExpired:
            pass
 
-        def monitor_ffmpeg_process(ffmpeg_proc, retry_after_quit=False):
+        def monitor_ffmpeg_process(ffmpeg_proc, retry_after_quit):
             # It seems important to drain the stderr output of ffmpeg, otherwise the whole process will get clogged
             ring_buffer = deque(maxlen=50)
-            ffmpeg_backoff = ExpoBackoff(3)
+            ffmpeg_backoff = ExpoBackoff(3, max_attempts=10)
             while True:
                 line = to_unicode(ffmpeg_proc.stderr.readline(), errors='replace')
                 if not line:  # line == None means the process quits
@@ -427,7 +432,7 @@ class WebcamStreamer:
                 is_nozzle_camera=webcam.is_nozzle_camera,
                 stream_mode=webcam.streaming_params.get('mode'),
                 stream_id=webcam.runtime.get('stream_id'),
-                data_channel_available=webcam.runtime.get('dataport', -1) > 0,
+                data_channel_available=(webcam.runtime.get('dataport') if webcam.runtime.get('dataport') is not None else -1) > 0,
                 flipV=webcam.flip_v,
                 flipH=webcam.flip_h,
                 rotation=webcam.rotation,
