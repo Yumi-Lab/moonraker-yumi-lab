@@ -165,9 +165,9 @@ LimitNOFILE=65536
 WantedBy=multi-user.target
 SVCEOF
 
+    sudo systemctl enable janus.service
+    # daemon-reload and start fail in chroot (no running systemd) — safe to ignore
     sudo systemctl daemon-reload 2>/dev/null || true
-    sudo systemctl enable janus.service 2>/dev/null || true
-    # start may fail in chroot (no systemd running) — that's OK
     sudo systemctl start janus.service 2>/dev/null || true
     report_status "Janus service created and enabled."
 }
