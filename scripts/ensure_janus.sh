@@ -166,10 +166,14 @@ WantedBy=multi-user.target
 SVCEOF
 
     sudo systemctl enable janus.service
-    # daemon-reload and start fail in chroot (no running systemd) — safe to ignore
-    sudo systemctl daemon-reload 2>/dev/null || true
-    sudo systemctl start janus.service 2>/dev/null || true
-    report_status "Janus service created and enabled."
+    # In chroot (build), systemd is not running — skip daemon-reload and start
+    if [ "$(stat -c %d:%i /)" != "$(stat -c %d:%i /proc/1/root/.)" ] 2>/dev/null; then
+        report_status "Chroot detected — skipping janus service start (will start on boot)."
+    else
+        sudo systemctl daemon-reload
+        sudo systemctl start janus.service
+        report_status "Janus service created and started."
+    fi
 }
 
 # Run if called directly (not sourced)
