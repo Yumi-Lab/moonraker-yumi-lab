@@ -63,7 +63,9 @@ jobs:
               make DESTDIR=/tmp/janus-staging install
 
               # ── Package as .deb ──
-              PKG_DIR="/tmp/janus-gateway_${JANUS_VERSION_NUM}_armhf"
+              # Package name is "janus" to match upstream dpkg -L janus used by
+              # moonraker_obico/janus_config_builder.py find_system_janus_paths()
+              PKG_DIR="/tmp/janus_${JANUS_VERSION_NUM}_armhf"
               mkdir -p "${PKG_DIR}/DEBIAN"
               cp -a /tmp/janus-staging/usr "${PKG_DIR}/"
 
@@ -72,39 +74,52 @@ jobs:
                      "${PKG_DIR}/usr/share/man" \
                      "${PKG_DIR}/usr/include"
 
+              # Create temporary debian/control for dpkg-shlibdeps
+              mkdir -p /tmp/dpkg-work/debian
+              cat > /tmp/dpkg-work/debian/control <<DCTRL
+Source: janus
+Section: net
+Priority: optional
+Maintainer: Yumi-Lab <contact@yumi-lab.com>
+
+Package: janus
+Architecture: armhf
+Description: Janus WebRTC Server
+DCTRL
+
               # Detect shared library dependencies automatically
+              cd /tmp/dpkg-work
               DEPS=$(dpkg-shlibdeps -O \
                 ${PKG_DIR}/usr/bin/janus \
                 ${PKG_DIR}/usr/lib/janus/plugins/*.so \
                 ${PKG_DIR}/usr/lib/janus/transports/*.so \
-                2>/dev/null | sed "s/^shlibs:Depends=//") || true
+                2>&1 | grep "^shlibs:Depends=" | sed "s/^shlibs:Depends=//") || true
+              cd /tmp
 
               # Fallback if dpkg-shlibdeps fails
               if [ -z "$DEPS" ]; then
-                DEPS="libglib2.0-0t64, libjansson4, libnice10, libssl3t64, libsrtp2-1, libwebsockets19, libmicrohttpd12, libconfig9, libcurl4t64"
+                DEPS="libglib2.0-0t64, libjansson4, libnice10, libssl3t64, libsrtp2-1, libwebsockets19t64, libmicrohttpd12t64, libconfig11, libcurl4t64"
               fi
 
               cat > "${PKG_DIR}/DEBIAN/control" <<CTRL
-          Package: janus-gateway
-          Version: ${JANUS_VERSION_NUM}
-          Section: net
-          Priority: optional
-          Architecture: armhf
-          Depends: ${DEPS}
-          Maintainer: Yumi-Lab <contact@yumi-lab.com>
-          Homepage: https://github.com/meetecho/janus-gateway
-          Description: Janus WebRTC Server (Trixie armhf cross-build)
-           Pre-built Janus Gateway for Debian 13 Trixie armhf.
-           Built from janus-gateway upstream for systems where the
-           official Debian package is unavailable.
-          CTRL
-
-              # Fix control file indentation (remove leading spaces from heredoc)
-              sed -i "s/^          //" "${PKG_DIR}/DEBIAN/control"
+Package: janus
+Version: ${JANUS_VERSION_NUM}
+Section: net
+Priority: optional
+Architecture: armhf
+Depends: ${DEPS}
+Provides: janus-gateway
+Maintainer: Yumi-Lab <contact@yumi-lab.com>
+Homepage: https://github.com/meetecho/janus-gateway
+Description: Janus WebRTC Server (Trixie armhf cross-build)
+ Pre-built Janus Gateway for Debian 13 Trixie armhf.
+ Built from janus-gateway upstream for systems where the
+ official Debian package is unavailable.
+CTRL
 
               dpkg-deb --build --root-owner-group "${PKG_DIR}"
 
-              DEB_FILE="/tmp/janus-gateway_${JANUS_VERSION_NUM}_armhf.deb"
+              DEB_FILE="/tmp/janus_${JANUS_VERSION_NUM}_armhf.deb"
               cp "${DEB_FILE}" /output/
               echo "Built: $(ls -lh ${DEB_FILE})"
               dpkg-deb --info "${DEB_FILE}"
