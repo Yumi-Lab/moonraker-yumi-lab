@@ -62,7 +62,10 @@ ensure_janus() {
     fi
 
     # Available via apt? (Bookworm and older)
-    if apt-cache show janus &>/dev/null 2>&1; then
+    # apt-cache show returns 0 even for virtual/unavailable packages on Trixie
+    # Use apt-cache policy and check for an actual installation candidate
+    if apt-cache policy janus 2>/dev/null | grep -q "Candidate:" && \
+       ! apt-cache policy janus 2>/dev/null | grep -q "Candidate: (none)"; then
         report_status "Installing Janus from apt..."
         sudo apt-get install -y janus
         return 0
