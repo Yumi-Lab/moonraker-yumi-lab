@@ -58,6 +58,8 @@ ensure_janus() {
     # Already installed?
     if command -v janus &>/dev/null; then
         report_status "Janus is already installed: $(which janus)"
+        setup_janus_config
+        setup_janus_service
         return 0
     fi
 
@@ -68,6 +70,8 @@ ensure_janus() {
        ! apt-cache policy janus 2>/dev/null | grep -q "Candidate: (none)"; then
         report_status "Installing Janus from apt..."
         sudo apt-get install -y janus
+        setup_janus_config
+        setup_janus_service
         return 0
     fi
 
@@ -102,10 +106,69 @@ ensure_janus() {
 
     if command -v janus &>/dev/null; then
         report_status "Janus installed successfully: $(janus --version 2>&1 | head -1)"
+        setup_janus_config
+        setup_janus_service
     else
         echo "${yellow}WARNING: Janus installation may have failed. Check errors above.${default}"
         return 1
     fi
+}
+
+setup_janus_config() {
+    # Create /etc/janus config from .sample files if not already present
+    local sample_dir="/usr/etc/janus"
+    local config_dir="/etc/janus"
+
+    if [ ! -d "${sample_dir}" ]; then
+        report_status "No Janus sample configs found, skipping config setup."
+        return 0
+    fi
+
+    if [ -d "${config_dir}" ] && [ "$(ls -A ${config_dir} 2>/dev/null)" ]; then
+        report_status "Janus config already exists in ${config_dir}, skipping."
+        return 0
+    fi
+
+    report_status "Setting up Janus configuration..."
+    sudo mkdir -p "${config_dir}"
+    for sample in "${sample_dir}"/*.jcfg.sample; do
+        [ -f "${sample}" ] || continue
+        local dest="${config_dir}/$(basename "${sample}" .sample)"
+        if [ ! -f "${dest}" ]; then
+            sudo cp "${sample}" "${dest}"
+        fi
+    done
+    report_status "Janus config files deployed to ${config_dir}"
+}
+
+setup_janus_service() {
+    # Create systemd service for Janus if not already present
+    if [ -f /etc/systemd/system/janus.service ]; then
+        report_status "Janus systemd service already exists."
+        return 0
+    fi
+
+    report_status "Creating Janus systemd service..."
+    sudo tee /etc/systemd/system/janus.service > /dev/null <<'SVCEOF'
+[Unit]
+Description=Janus WebRTC Gateway
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/janus -o -F /etc/janus
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
+SVCEOF
+
+    sudo systemctl daemon-reload
+    sudo systemctl enable janus.service
+    sudo systemctl start janus.service
+    report_status "Janus service created and started."
 }
 
 # Run if called directly (not sourced)
