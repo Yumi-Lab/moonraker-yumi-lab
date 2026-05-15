@@ -46,7 +46,6 @@ gh workflow run build-janus-deb.yml \
 
 ```
 --disable-docs
---disable-data-channels
 --disable-rabbitmq
 --disable-mqtt
 --disable-nanomsg
@@ -63,7 +62,7 @@ automake autoconf libtool gengetopt
 libmicrohttpd-dev libjansson-dev libssl-dev
 libsrtp2-dev libglib2.0-dev libnice-dev
 libwebsockets-dev libconfig-dev libcurl4-openssl-dev
-libopus-dev libogg-dev
+libopus-dev libogg-dev libusrsctp-dev
 ```
 
 ### Sortie
