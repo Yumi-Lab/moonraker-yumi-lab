@@ -433,7 +433,7 @@ class App(object):
         if self.model and self.model.config and self.model.config._config:
             self.model.config._config.remove_option('server', 'auth_token')
             self.model.config.write()
-            subprocess.call(["systemctl", "restart", "moonraker-obico"])
+            subprocess.call(["systemctl", "restart", "moonraker-yumi"])
         else:
             _logger.warning('Not linked or not connected to server. Ignoring re-linking request.')
 
