@@ -110,16 +110,9 @@ managed_services:
   ${OBICO_SERVICE_NAME}
 EOF
 
-  # Cleanup old include reference
-  if grep -q "include moonraker-obico-update.cfg" "${MOONRAKER_CONFIG_FILE}" ; then
-    sed -i '/include moonraker-obico-update.cfg/d' "${MOONRAKER_CONFIG_FILE}"
-  fi
-  # Remove old update file
-  rm -f "${MOONRAKER_CONF_DIR}/moonraker-obico-update.cfg"
-
-  if ! grep -q "include moonraker-yumi-update.cfg" "${MOONRAKER_CONFIG_FILE}" ; then
+  if ! grep -q "include moonraker-obico-update.cfg" "${MOONRAKER_CONFIG_FILE}" ; then
     echo "" >> "${MOONRAKER_CONFIG_FILE}"
-    echo "[include moonraker-yumi-update.cfg]" >> "${MOONRAKER_CONFIG_FILE}"
+    echo "[include moonraker-obico-update.cfg]" >> "${MOONRAKER_CONFIG_FILE}"
 	fi
 
   "${OBICO_DIR}/scripts/ensure_include_cfgs.sh" "${MOONRAKER_CONF_DIR}/printer.cfg"
@@ -127,11 +120,7 @@ EOF
 
 
 ensure_venv() {
-  OBICO_ENV="${OBICO_DIR}/../moonraker-yumi-env"
-  # Migrate old virtualenv if it exists
-  if [ ! -d "${OBICO_ENV}" ] && [ -d "${OBICO_DIR}/../moonraker-obico-env" ]; then
-    mv "${OBICO_DIR}/../moonraker-obico-env" "${OBICO_ENV}"
-  fi
+  OBICO_ENV="${OBICO_DIR}/../moonraker-obico-env"
   if [ ! -f "${OBICO_ENV}/bin/activate" ] ; then
     report_status "Creating python virtual environment for moonraker-yumi-lab..."
     mkdir -p "${OBICO_ENV}"
