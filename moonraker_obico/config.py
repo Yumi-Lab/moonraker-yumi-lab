@@ -240,7 +240,7 @@ class Config:
                 fallback=None),
             upload_dir=config.get(
                 'server', 'upload_dir',
-                fallback='Obico_Upload').strip().lstrip('/').rstrip('/'),
+                fallback='Yumi_Upload').strip().lstrip('/').rstrip('/'),
             feedrate_xy=config.getint(
                 'server', 'feedrate_xy',
                 fallback=ServerConfig.DEFAULT_FEEDRATE_XY,
