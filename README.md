@@ -1,50 +1,43 @@
-# Obico for Klipper (Moonraker-Obico)
+# Moonraker-Yumi-Lab (Legacy — SmartPad V1)
 
-This is a Moonraker plugin that enables the Klipper-based 3D printers to connect to YUMI LAB.
+> **⚠️ Ce repo est en mode maintenance uniquement.**
+> Pour les nouvelles installations (YumiOS V2 / SmartPi ONE), utilisez :
+> **[Yumi-Lab/moonraker-app-yumi-lab](https://github.com/Yumi-Lab/moonraker-app-yumi-lab)**
 
-[Obico](https://wiki.yumi-lab.com) is a community-built, open-source smart 3D printing platform used by makers, enthusiasts, and tinkerers around the world.
+---
 
+Plugin Moonraker pour connecter les imprimantes 3D Klipper au serveur Yumi Lab.
+Fournit la détection IA de défauts, le streaming WebRTC via Janus, et le monitoring à distance.
 
-# Installation
+## Plateformes supportées
 
-    cd ~
-    git clone https://github.com/Yumi-Lab/moonraker-yumi-lab.git
-    cd moonraker-yumi-lab
-    chmod +x install.sh
-    ./install.sh
+| Plateforme | Repo | Service |
+|------------|------|---------|
+| SmartPad V1 (arm64, Bookworm) | **ce repo** | `moonraker-obico` |
+| SmartPi ONE V2 (armhf, Trixie) | [moonraker-app-yumi-lab](https://github.com/Yumi-Lab/moonraker-app-yumi-lab) | `moonraker-yumi` |
 
-[Detailed documentation](https://www.obico.io/docs/user-guides/klipper-setup/).
+## Installation (SmartPad V1 uniquement)
 
+```bash
+cd ~
+git clone https://github.com/Yumi-Lab/moonraker-yumi-lab.git
+cd moonraker-yumi-lab
+chmod +x install.sh
+./install.sh
+```
 
-# Uninstall
+## Désinstallation
 
-    sudo systemctl stop moonraker-obico.service
-    sudo systemctl disable moonraker-obico.service
-    sudo rm /etc/systemd/system/moonraker-obico.service
-    sudo systemctl daemon-reload
-    sudo systemctl reset-failed
-    rm -rf ~/moonraker-yumi-lab
-    rm -rf ~/moonraker-obico-env
+```bash
+sudo systemctl stop moonraker-obico.service
+sudo systemctl disable moonraker-obico.service
+sudo rm /etc/systemd/system/moonraker-obico.service
+sudo systemctl daemon-reload
+rm -rf ~/moonraker-yumi-lab
+rm -rf ~/moonraker-obico-env
+```
 
+## Documentation
 
-# Use the container Image
-
-See [run_as_container.md](run_as_container.md)
-
-# Set up a dev environment
-
-    cd ~
-    git clone https://github.com/Yumi-Lab/moonraker-yumi-lab.git
-    cd moonraker-yumi-lab
-    virtualenv -p /usr/bin/python3 --system-site-packages ~/moonraker-obico-env
-    source ~/moonraker-obico-env/bin/activate
-    pip3 install -r requirements.txt
-
-    # fill in essential configuration
-    cp moonraker-obico.cfg.sample moonraker-obico.cfg
-
-    # link printer (grab Obico auth token)
-    python3 -m moonraker_obico.link -c moonraker-obico.cfg
-
-    # start app
-    python3 -m moonraker_obico.app -c moonraker-obico.cfg
+- [Wiki Yumi Lab](https://wiki.yumi-lab.com)
+- [Discord Yumi Lab](https://discord.gg/yumi-lab)
