@@ -40,4 +40,4 @@ rm -rf ~/moonraker-obico-env
 ## Documentation
 
 - [Wiki Yumi Lab](https://wiki.yumi-lab.com)
-- [Discord Yumi Lab](https://discord.gg/yumi-lab)
+- [Discord Yumi Lab](https://discord.yumi-lab.com)
