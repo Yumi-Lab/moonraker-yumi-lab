@@ -28,7 +28,8 @@ class MoonrakerConfig:
 
 @dataclasses.dataclass
 class ServerConfig:
-    url: str = 'https://app.obico.io'
+    url: str = 'https://app.yumi-lab.com'
+    sentry_url: str = 'https://3d-print-sentry.yumi-lab.com'  # AI detection server
     auth_token: Optional[str] = None
     upload_dir: str = ''  # relative to virtual sdcard
 
@@ -234,7 +235,10 @@ class Config:
         self.server = ServerConfig(
             url=config.get(
                 'server', 'url',
-                fallback='https://app.obico.io'),
+                fallback='https://app.yumi-lab.com'),
+            sentry_url=config.get(
+                'server', 'sentry_url',
+                fallback='https://3d-print-sentry.yumi-lab.com'),
             auth_token=config.get(
                 'server', 'auth_token',
                 fallback=None),
